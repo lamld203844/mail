@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // By default, load the inbox
   load_mailbox('inbox');
 
-  // Sending form
+  // Sending mail
   document.querySelector('#compose-view').addEventListener('submit', event => sendMail(event));
     
 });
@@ -18,7 +18,7 @@ function compose_email() {
 
   // Show compose view and hide other views
   document.querySelector('#emails-view').style.display = 'none';
-  document.querySelector('#show-email-view').style.display = 'none';
+  document.querySelector('#each-email-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'block';
 
   // Clear out composition fields
@@ -27,77 +27,77 @@ function compose_email() {
   document.querySelector('#compose-body').value = '';
 }
 
-function load_mailbox(mailbox) {
+async function load_mailbox(mailbox) {
   
   // Show the mailbox and hide other views
   document.querySelector('#emails-view').style.display = 'block';
-  document.querySelector('#show-email-view').style.display = 'none';
+  document.querySelector('#each-email-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'none';
 
   // Show the mailbox name
   document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
 
   // Show all entries of mailbox
-  fetch(`/emails/${mailbox}`)
-  .then(response => response.json())
-  .then(emails => {
-      // Print emails
-      console.log(emails);
-      
-      // Add email to 'emails view' (should replacing by React in future)
-      // encapsulate all mails to a list
-      const list = document.createElement('ul');
-      list.className = 'list-group';
+  const response = await fetch(`/emails/${mailbox}`);
 
-      for (email in emails){
-        // item of ul (div in li tag)
-        const element = document.createElement('li');
-        // if unread, gray background
-        emails[email].read ? element.className = 'btn btn-outline-dark' :
-          element.className = 'btn btn-dark';
+  const emails = await response.json();
+  
+  // Add email to 'emails view' (should replacing by React in future)
+  // encapsulate all mails to a list
+  const list = document.createElement('ul');
+  list.className = 'list-group';
 
-        const div = document.createElement('div');
-        div.className = 'row';
-        element.append(div);
+  for (email in emails){
+    // item of ul (li tag (including div) )
+    const element = document.createElement('li');
+    // if unread, gray background
+    emails[email].read ? element.className = 'btn btn-outline-dark' :
+      element.className = 'btn btn-dark';
 
-        // sender
-        const div_sender = document.createElement('div');
-        mailbox === 'sent' ? div_sender.innerHTML = emails[email].recipients
-        : div_sender.innerHTML = emails[email].sender;
-        div_sender.className = 'col-3  list-div-sender';
-        div.append(div_sender);
-        
-        // subject
-        const div_subject = document.createElement('div');
-        div_subject.innerHTML = emails[email].subject;
-        div_subject.className = 'col-2 list-div-subject';
-        div.append(div_subject);
-        
-        // boostrap col-3
-        const div_col = document.createElement('div');
-        div_col.className = 'col-4';
-        div.append(div_col);
+    const div = document.createElement('div');
+    div.className = 'row';
+    element.append(div);
 
-        // timestamp
-        const div_timestamp = document.createElement('div');
-        div_timestamp.innerHTML = emails[email].timestamp;
-        div_timestamp.className = 'col-3 list-div-timestamp';
-        div.append(div_timestamp);
+    // sender
+    const div_sender = document.createElement('div');
+    mailbox === 'sent' ? div_sender.innerHTML = emails[email].recipients
+    : div_sender.innerHTML = emails[email].sender;
+    div_sender.className = 'col-3  list-div-sender';
+    div.append(div_sender);
+    
+    // subject
+    const div_subject = document.createElement('div');
+    div_subject.innerHTML = emails[email].subject;
+    div_subject.className = 'col-2 list-div-subject';
+    div.append(div_subject);
+    
+    // NULL boostrap col-4
+    const div_col = document.createElement('div');
+    div_col.className = 'col-4';
+    div.append(div_col);
 
-        // event when click on list
-        element.addEventListener('click', event => viewEmail(event) );
+    // timestamp
+    const div_timestamp = document.createElement('div');
+    div_timestamp.innerHTML = emails[email].timestamp;
+    div_timestamp.className = 'col-3 list-div-timestamp';
+    div.append(div_timestamp);
 
-        list.append(element);
-      }
+    // Event when click on each email
+    const id = emails[email].id;
+    element.addEventListener('click', function() {
+      viewEmail(id);
+    });
 
-      document.querySelector('#emails-view').append(list);
+    list.append(element);
+  }
 
-  });
+  document.querySelector('#emails-view').append(list);
+
 }
 
-function sendMail(event){
+async function sendMail(event){
   // Notes:  By default, form submits to current URL
-  // So here we prevent default and use Fetch API instead to submit
+  // So here we prevent default and use Fetch API to control the submit
   event.preventDefault();
 
   //Get data from form
@@ -114,18 +114,86 @@ function sendMail(event){
         body: body
     })
   })
-  .then(response => response.json())
-  .then(result => {
-      // Print result
-      console.log(result);
+  .then(response => {
+    
+    // Successfully alert
+    const announce = document.createElement('div');
+    response.ok ? announce.className = 'alert alert-success' : 
+    announce.className = 'alert alert-danger';
+    announce.setAttribute('role', 'alert');
+    document.querySelector('#status-sending').append(announce);
 
-      // Successfully alert
+    response.json().then(result => {
+            // Print result
+            console.log(result);
 
-      // Load sent mailbox
-      load_mailbox('sent');
-  });
+            // alert content
+            announce.innerHTML = result.message;
+      
+            // Load sent mailbox
+            load_mailbox('sent');
+      
+            // Clear status sending after 5s
+            setTimeout(() => {
+              document.querySelector('#status-sending').remove();
+            },5000);
+    })
+  })
+  .catch(error => console.log(error));
+
 }
 
-function viewEmail(event){
-  console.log('detailed email');
+function viewEmail(id){
+
+  // Show each-email-view and hide other views
+  document.querySelector('#emails-view').style.display = 'none';
+  document.querySelector('#each-email-view').style.display = 'block';
+  document.querySelector('#compose-view').style.display = 'none';
+
+  // Clear every ime load
+  document.querySelector('#each-email-view').innerHTML = '';
+
+  // GET request each email 
+  fetch(`/emails/${id}`)
+  .then(response => response.json())
+  .then(result => {
+
+    // header email
+    const head = document.createElement('div');
+
+      const sender = document.createElement('div')
+      sender.innerHTML = `<strong>From</strong>:  ${result.sender}`;
+      head.append(sender);
+
+      const recipients = document.createElement('div')
+      recipients.innerHTML = `<strong>To</strong>:  ${result.recipients}`;
+      head.append(recipients);
+
+      const subject = document.createElement('div')
+      subject.innerHTML = `<strong>Subject</strong>:  ${result.subject}`;
+      head.append(subject);
+
+      const timestamp = document.createElement('div')
+      timestamp. innerHTML = `<strong>Timestamp</strong>:  ${result.timestamp}`;
+      head.append(timestamp);
+      
+    document.querySelector('#each-email-view').append(head);
+
+    // body email 
+    const body = document.createElement('div');
+    body.innerHTML = `<hr> ${result.body}`;
+
+    document.querySelector('#each-email-view').append(body);
+
+  })
+  .catch(error => console.log(error));
+
+  // Mark email as read
+  fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      read: true
+    })
+  })
+  .catch(error => console.log(error));
 }
