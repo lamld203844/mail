@@ -14,17 +14,34 @@ document.addEventListener('DOMContentLoaded', function() {
     
 });
 
-function compose_email() {
+function compose_email(...pre) {
 
   // Show compose view and hide other views
   document.querySelector('#emails-view').style.display = 'none';
   document.querySelector('#each-email-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'block';
 
-  // Clear out composition fields
-  document.querySelector('#compose-recipients').value = '';
-  document.querySelector('#compose-subject').value = '';
-  document.querySelector('#compose-body').value = '';
+  // pre-fill if reply, clear out by default
+  // sender
+  document.querySelector('#compose-recipients').value = (pre[0].sender === undefined) ?
+  '' :
+  pre[0].sender;
+
+  // subject
+  let sub_e = '';
+  if (pre[0].subject !== undefined) {
+
+    // add string 'Re: ' (if not already have)
+    const first3 = pre[0].subject.trim().slice(0, 3);
+    sub_e = (first3.toUpperCase() === 'RE:') ? pre[0].subject : `Re: ${pre[0].subject}`;
+  }
+  document.querySelector('#compose-subject').value = sub_e;
+
+  // body
+  document.querySelector('#compose-body').value = (pre[0].body === undefined) ?
+  '' :
+  `"On ${pre[0].timestamp}, ${pre[0].sender} wrote: ${pre[0].body}"`;
+
 }
 
 async function load_mailbox(mailbox) {
@@ -106,12 +123,10 @@ async function load_mailbox(mailbox) {
       div_timestamp.className = 'col-3 list-div-timestamp';
       div.append(div_timestamp);
 
-      // Event when click on each email
+      // View mail when click on each email
       const id = emails[email].id;
       element.id = id;
-      element.addEventListener('click', function() {
-        viewEmail(id, event);
-      });
+      element.addEventListener('click', () => viewEmail(id, event));
 
       list.append(element);
   }
@@ -149,8 +164,6 @@ async function sendMail(event){
     document.querySelector('#status-sending').append(announce);
 
     response.json().then(result => {
-            // Print result
-            console.log(result);
 
             // alert content
             announce.innerHTML = result.message;
@@ -169,7 +182,9 @@ async function sendMail(event){
 }
 
 function viewEmail(id, event){
-  if (event.target.className !== 'archive btn btn-sm btn-outline-secondary'){
+
+  // view mail if user click on mail (except archive button)
+  if (event.target.className !== 'archive btn btn-sm btn-outline-secondary') {
 
     // Show each-email-view and hide other views
     document.querySelector('#emails-view').style.display = 'none';
@@ -202,6 +217,14 @@ function viewEmail(id, event){
         const timestamp = document.createElement('div')
         timestamp. innerHTML = `<strong>Timestamp</strong>:  ${result.timestamp}`;
         head.append(timestamp);
+
+        // reply button
+        const reply = document.createElement('button');
+        reply.className = 'btn btn-sm btn-outline-primary';
+        reply.innerHTML = 'Reply';
+        // When click on Reply button, compose with pre-fill
+        reply.addEventListener('click', () => compose_email(result));
+        head.append(reply);
         
       document.querySelector('#each-email-view').append(head);
 
@@ -231,10 +254,6 @@ function viewEmail(id, event){
 function archiveMail(event){
   const element = event.target;
   if (element.className === 'archive btn btn-sm btn-outline-secondary'){
-    // Print mail id
-    console.log(event.target.parentElement.id);
-    // log
-    console.log(event.target.innerHTML === 'archive');
 
     // archive PUT request
     fetch(`/emails/${event.target.parentElement.id}`,{
