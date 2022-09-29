@@ -65,73 +65,75 @@ async function load_mailbox(mailbox) {
   
   // Add email to 'emails view' (should replacing by React in future)
   // encapsulate all mails to a list
-  const list = document.createElement('ul');
-  list.className = 'list-group';
+  const ul = document.createElement('ul');
+  ul.className = 'list-group';
 
-  for (email in emails){
+  emails.forEach(email => {
+    
+    // item of list
+    const element = document.createElement('li');
+    // if unread, gray background
+    email.read ? element.className = 'btn btn-outline-dark' :
+      element.className = 'btn btn-dark';
 
-      // item of ul (li tag (including div) )
-      const element = document.createElement('li');
-      // if unread, gray background
-      emails[email].read ? element.className = 'btn btn-outline-dark' :
-        element.className = 'btn btn-dark';
+    const div = document.createElement('div');
+    div.className = 'row';
+    element.append(div);
 
-      const div = document.createElement('div');
-      div.className = 'row';
-      element.append(div);
+    // sender
+    const div_sender = document.createElement('div');
+    div_sender.innerHTML = (mailbox === 'sent') ? email.recipients : email.sender;
+    div_sender.className = 'col-3  list-div-sender';
+    div.append(div_sender);
 
-      // sender
-      const div_sender = document.createElement('div');
-      mailbox === 'sent' ? div_sender.innerHTML = emails[email].recipients
-      : div_sender.innerHTML = emails[email].sender;
-      div_sender.className = 'col-3  list-div-sender';
-      div.append(div_sender);
+    // subject
+    const div_subject = document.createElement('div');
+    div_subject.innerHTML = email.subject;
+    div_subject.className = 'col-2 list-div-subject';
+    div.append(div_subject);
+
+    // archive button (not apply for sent mailbox)
+    if (mailbox === 'sent') {
+
+      // NULL boostrap col-4
+      const div_col = document.createElement('div');
+      div_col.className = 'col-4';
+      div.append(div_col);
+
+    } else {
       
-      // subject
-      const div_subject = document.createElement('div');
-      div_subject.innerHTML = emails[email].subject;
-      div_subject.className = 'col-2 list-div-subject';
-      div.append(div_subject);
+      // NULL boostrap col-2
+      const div_col = document.createElement('div');
+      div_col.className = 'col-2';
+      div.append(div_col);
 
-      // archive button (not apply for sent mailbox)
-      if (mailbox === 'sent') {
+      // archive button
+      const archive = document.createElement('div');
+      archive.id = email.id;
+      const innerContent = (mailbox === 'archive') ? 'unarchive' : 'archive';
+      archive.innerHTML = `<button type="button" 
+      class="archive btn btn-sm btn-outline-secondary">${innerContent}</button>`;
 
-        // NULL boostrap col-4
-        const div_col = document.createElement('div');
-        div_col.className = 'col-4';
-        div.append(div_col);
+      archive.addEventListener('click', event => archiveMail(event));
+      div.append(archive);
+    };
 
-      } else {
-        
-        // NULL boostrap col-2
-        const div_col = document.createElement('div');
-        div_col.className = 'col-2';
-        div.append(div_col);
+    // timestamp
+    const div_timestamp = document.createElement('div');
+    div_timestamp.innerHTML = email.timestamp;
+    div_timestamp.className = 'col-3 list-div-timestamp';
+    div.append(div_timestamp);
 
-        // archive button
-        const archive = document.createElement('div');
-        archive.id = emails[email].id;
-        (mailbox === 'archive') ? innerContent = 'unarchive' : innerContent = 'archive';
-        archive.innerHTML = `<button type="button" class="archive btn btn-sm btn-outline-secondary">${innerContent}</button>`;
-        archive.addEventListener('click', event => archiveMail(event));
-        div.append(archive);
-      };
+    // View mail function
+    const id = email.id;
+    element.id = id;
+    element.addEventListener('click', () => viewEmail(id, event));
 
-      // timestamp
-      const div_timestamp = document.createElement('div');
-      div_timestamp.innerHTML = emails[email].timestamp;
-      div_timestamp.className = 'col-3 list-div-timestamp';
-      div.append(div_timestamp);
+    ul.append(element);
 
-      // View mail when click on each email
-      const id = emails[email].id;
-      element.id = id;
-      element.addEventListener('click', () => viewEmail(id, event));
+  });
 
-      list.append(element);
-  }
-
-  document.querySelector('#emails-view').append(list);
+  document.querySelector('#emails-view').append(ul);
 
 }
 
