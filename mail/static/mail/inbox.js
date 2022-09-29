@@ -34,13 +34,17 @@ async function load_mailbox(mailbox) {
   document.querySelector('#each-email-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'none';
 
+  // Clear every time load
+  document.querySelector('#emails-view').innerHTML = '';
+
   // Show the mailbox name
   document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
 
-  // Show all entries of mailbox
+  // Show all entries of mailbox (unarchive)
   const response = await fetch(`/emails/${mailbox}`);
 
   const emails = await response.json();
+
   
   // Add email to 'emails view' (should replacing by React in future)
   // encapsulate all mails to a list
@@ -48,47 +52,68 @@ async function load_mailbox(mailbox) {
   list.className = 'list-group';
 
   for (email in emails){
-    // item of ul (li tag (including div) )
-    const element = document.createElement('li');
-    // if unread, gray background
-    emails[email].read ? element.className = 'btn btn-outline-dark' :
-      element.className = 'btn btn-dark';
 
-    const div = document.createElement('div');
-    div.className = 'row';
-    element.append(div);
+      // item of ul (li tag (including div) )
+      const element = document.createElement('li');
+      // if unread, gray background
+      emails[email].read ? element.className = 'btn btn-outline-dark' :
+        element.className = 'btn btn-dark';
 
-    // sender
-    const div_sender = document.createElement('div');
-    mailbox === 'sent' ? div_sender.innerHTML = emails[email].recipients
-    : div_sender.innerHTML = emails[email].sender;
-    div_sender.className = 'col-3  list-div-sender';
-    div.append(div_sender);
-    
-    // subject
-    const div_subject = document.createElement('div');
-    div_subject.innerHTML = emails[email].subject;
-    div_subject.className = 'col-2 list-div-subject';
-    div.append(div_subject);
-    
-    // NULL boostrap col-4
-    const div_col = document.createElement('div');
-    div_col.className = 'col-4';
-    div.append(div_col);
+      const div = document.createElement('div');
+      div.className = 'row';
+      element.append(div);
 
-    // timestamp
-    const div_timestamp = document.createElement('div');
-    div_timestamp.innerHTML = emails[email].timestamp;
-    div_timestamp.className = 'col-3 list-div-timestamp';
-    div.append(div_timestamp);
+      // sender
+      const div_sender = document.createElement('div');
+      mailbox === 'sent' ? div_sender.innerHTML = emails[email].recipients
+      : div_sender.innerHTML = emails[email].sender;
+      div_sender.className = 'col-3  list-div-sender';
+      div.append(div_sender);
+      
+      // subject
+      const div_subject = document.createElement('div');
+      div_subject.innerHTML = emails[email].subject;
+      div_subject.className = 'col-2 list-div-subject';
+      div.append(div_subject);
 
-    // Event when click on each email
-    const id = emails[email].id;
-    element.addEventListener('click', function() {
-      viewEmail(id);
-    });
+      // archive button (not apply for sent mailbox)
+      if (mailbox === 'sent') {
 
-    list.append(element);
+        // NULL boostrap col-4
+        const div_col = document.createElement('div');
+        div_col.className = 'col-4';
+        div.append(div_col);
+
+      } else {
+        
+        // NULL boostrap col-2
+        const div_col = document.createElement('div');
+        div_col.className = 'col-2';
+        div.append(div_col);
+
+        // archive button
+        const archive = document.createElement('div');
+        archive.id = emails[email].id;
+        (mailbox === 'archive') ? innerContent = 'unarchive' : innerContent = 'archive';
+        archive.innerHTML = `<button type="button" class="archive btn btn-sm btn-outline-secondary">${innerContent}</button>`;
+        archive.addEventListener('click', event => archiveMail(event));
+        div.append(archive);
+      };
+
+      // timestamp
+      const div_timestamp = document.createElement('div');
+      div_timestamp.innerHTML = emails[email].timestamp;
+      div_timestamp.className = 'col-3 list-div-timestamp';
+      div.append(div_timestamp);
+
+      // Event when click on each email
+      const id = emails[email].id;
+      element.id = id;
+      element.addEventListener('click', function() {
+        viewEmail(id, event);
+      });
+
+      list.append(element);
   }
 
   document.querySelector('#emails-view').append(list);
@@ -143,57 +168,86 @@ async function sendMail(event){
 
 }
 
-function viewEmail(id){
+function viewEmail(id, event){
+  if (event.target.className !== 'archive btn btn-sm btn-outline-secondary'){
 
-  // Show each-email-view and hide other views
-  document.querySelector('#emails-view').style.display = 'none';
-  document.querySelector('#each-email-view').style.display = 'block';
-  document.querySelector('#compose-view').style.display = 'none';
+    // Show each-email-view and hide other views
+    document.querySelector('#emails-view').style.display = 'none';
+    document.querySelector('#each-email-view').style.display = 'block';
+    document.querySelector('#compose-view').style.display = 'none';
 
-  // Clear every ime load
-  document.querySelector('#each-email-view').innerHTML = '';
+    // Clear every time load
+    document.querySelector('#each-email-view').innerHTML = '';
 
-  // GET request each email 
-  fetch(`/emails/${id}`)
-  .then(response => response.json())
-  .then(result => {
+    // GET request each email 
+    fetch(`/emails/${id}`)
+    .then(response => response.json())
+    .then(result => {
 
-    // header email
-    const head = document.createElement('div');
+      // header email
+      const head = document.createElement('div');
 
-      const sender = document.createElement('div')
-      sender.innerHTML = `<strong>From</strong>:  ${result.sender}`;
-      head.append(sender);
+        const sender = document.createElement('div')
+        sender.innerHTML = `<strong>From</strong>:  ${result.sender}`;
+        head.append(sender);
 
-      const recipients = document.createElement('div')
-      recipients.innerHTML = `<strong>To</strong>:  ${result.recipients}`;
-      head.append(recipients);
+        const recipients = document.createElement('div')
+        recipients.innerHTML = `<strong>To</strong>:  ${result.recipients}`;
+        head.append(recipients);
 
-      const subject = document.createElement('div')
-      subject.innerHTML = `<strong>Subject</strong>:  ${result.subject}`;
-      head.append(subject);
+        const subject = document.createElement('div')
+        subject.innerHTML = `<strong>Subject</strong>:  ${result.subject}`;
+        head.append(subject);
 
-      const timestamp = document.createElement('div')
-      timestamp. innerHTML = `<strong>Timestamp</strong>:  ${result.timestamp}`;
-      head.append(timestamp);
-      
-    document.querySelector('#each-email-view').append(head);
+        const timestamp = document.createElement('div')
+        timestamp. innerHTML = `<strong>Timestamp</strong>:  ${result.timestamp}`;
+        head.append(timestamp);
+        
+      document.querySelector('#each-email-view').append(head);
 
-    // body email 
-    const body = document.createElement('div');
-    body.innerHTML = `<hr> ${result.body}`;
+      // body email 
+      const body = document.createElement('div');
+      body.innerHTML = `<hr> ${result.body}`;
 
-    document.querySelector('#each-email-view').append(body);
+      document.querySelector('#each-email-view').append(body);
+
+      // Mark email as read if mail is unread
+      if (result.read === false){
+        fetch(`/emails/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            read: true
+          })
+        })
+        .catch(error => console.log(error));
+      }
 
   })
   .catch(error => console.log(error));
+  }
 
-  // Mark email as read
-  fetch(`/emails/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      read: true
+}
+
+function archiveMail(event){
+  const element = event.target;
+  if (element.className === 'archive btn btn-sm btn-outline-secondary'){
+    // Print mail id
+    console.log(event.target.parentElement.id);
+    // log
+    console.log(event.target.innerHTML === 'archive');
+
+    // archive PUT request
+    fetch(`/emails/${event.target.parentElement.id}`,{
+      method: 'PUT',
+      body: JSON.stringify({
+        archived: event.target.innerHTML === 'archive'
+      })
     })
-  })
-  .catch(error => console.log(error));
+    .catch(error => console.log(error))
+    .finally(() => {
+
+      load_mailbox('inbox');
+    
+    });
+  }
 }
