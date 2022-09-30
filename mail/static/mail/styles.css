@@ -6,3 +6,35 @@ textarea {
     font-weight: bold;
 }
 
+/* hide animation */
+@keyframes hide {
+    0% {
+        opacity: 1;
+        padding: 20px;
+        margin-bottom: 10px;
+        height: 100%;
+        line-height: 100%;
+    }
+    75% {
+        opacity: 0;
+        padding: 20px;
+        margin-bottom: 10px;
+        height: 100%;
+        line-height: 100%;
+    }
+    100% {
+        opacity: 0;
+        padding: 0px;
+        margin-bottom: 0px;
+        height: 0%;
+        line-height: 100%;
+    }
+}
+
+.alert{
+    padding: 20px;
+    margin-bottom: 10px;
+    animation: hide;
+    animation-duration: 4s;
+    animation-fill-mode: forwards;
+}

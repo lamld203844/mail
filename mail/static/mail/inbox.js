@@ -176,10 +176,11 @@ async function sendMail(event){
             // Load sent mailbox
             load_mailbox('sent');
       
-            // Clear status sending after 5s
-            setTimeout(() => {
+            // Status sending during 4s
+            announce.addEventListener('animationend', () => {
               document.querySelector('.alert').remove();
-            },5000);
+            });
+
     })
   })
   .catch(error => console.log(error));
