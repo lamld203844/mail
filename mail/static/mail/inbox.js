@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function compose_email(...pre) {
+  // log pre
+  console.log(pre);
 
   // Show compose view and hide other views
   document.querySelector('#emails-view').style.display = 'none';
@@ -22,7 +24,7 @@ function compose_email(...pre) {
   document.querySelector('#compose-view').style.display = 'block';
 
   // pre-fill if reply, clear out by default
-  // sender
+  // send to
   document.querySelector('#compose-recipients').value = (pre[0].sender === undefined) ?
   '' :
   pre[0].sender;
@@ -51,20 +53,20 @@ async function load_mailbox(mailbox) {
   document.querySelector('#each-email-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'none';
 
-  // Clear every time load
+  // Clear every time loading
   document.querySelector('#emails-view').innerHTML = '';
 
   // Show the mailbox name
   document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
 
-  // Show all entries of mailbox (unarchive)
+  // Get all entries of mailbox
   const response = await fetch(`/emails/${mailbox}`);
 
   const emails = await response.json();
 
   
   // Add email to 'emails view' (should replacing by React in future)
-  // encapsulate all mails to a list
+  // encapsulate all mails to a un-order list
   const ul = document.createElement('ul');
   ul.className = 'list-group';
 
@@ -73,9 +75,9 @@ async function load_mailbox(mailbox) {
     // item of list
     const element = document.createElement('li');
     // if unread, gray background
-    email.read ? element.className = 'btn btn-outline-dark' :
-      element.className = 'btn btn-dark';
+    element.className = email.read ? 'btn btn-outline-dark' : 'btn btn-dark';
 
+    // row for diving grid in Boostrap
     const div = document.createElement('div');
     div.className = 'row';
     element.append(div);
@@ -107,7 +109,7 @@ async function load_mailbox(mailbox) {
       div_col.className = 'col-2';
       div.append(div_col);
 
-      // archive button
+      // archive button col-2
       const archive = document.createElement('div');
       archive.id = email.id;
       const innerContent = (mailbox === 'archive') ? 'unarchive' : 'archive';
@@ -127,8 +129,9 @@ async function load_mailbox(mailbox) {
     // View mail function
     const id = email.id;
     element.id = id;
-    element.addEventListener('click', () => viewEmail(id, event));
+    element.addEventListener('click', () => viewEmail(id, event, mailbox));
 
+    // Add encapsulating list element to ul
     ul.append(element);
 
   });
@@ -175,7 +178,7 @@ async function sendMail(event){
       
             // Clear status sending after 5s
             setTimeout(() => {
-              document.querySelector('#status-sending').remove();
+              document.querySelector('.alert').remove();
             },5000);
     })
   })
@@ -183,7 +186,7 @@ async function sendMail(event){
 
 }
 
-function viewEmail(id, event){
+function viewEmail(id, event, fromMailbox){
 
   // view mail if user click on mail (except archive button)
   if (event.target.className !== 'archive btn btn-sm btn-outline-secondary') {
@@ -220,13 +223,17 @@ function viewEmail(id, event){
         timestamp. innerHTML = `<strong>Timestamp</strong>:  ${result.timestamp}`;
         head.append(timestamp);
 
-        // reply button
-        const reply = document.createElement('button');
-        reply.className = 'btn btn-sm btn-outline-primary';
-        reply.innerHTML = 'Reply';
-        // When click on Reply button, compose with pre-fill
-        reply.addEventListener('click', () => compose_email(result));
-        head.append(reply);
+        if (fromMailbox !== 'sent') {
+          
+          // reply button (non-existing in sent mailbox)
+          const reply = document.createElement('button');
+          reply.className = 'btn btn-sm btn-outline-primary';
+          reply.innerHTML = 'Reply';
+          // When click on Reply button, compose with pre-fill
+          reply.addEventListener('click', () => compose_email(result));
+          head.append(reply);
+
+        }
         
       document.querySelector('#each-email-view').append(head);
 
