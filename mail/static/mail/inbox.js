@@ -163,8 +163,7 @@ async function sendMail(event){
     
     // Successfully alert
     const announce = document.createElement('div');
-    response.ok ? announce.className = 'alert alert-success' : 
-    announce.className = 'alert alert-danger';
+    announce.className = response.ok ? 'alert alert-success' : 'alert alert-danger';
     announce.setAttribute('role', 'alert');
     document.querySelector('#status-sending').append(announce);
 
